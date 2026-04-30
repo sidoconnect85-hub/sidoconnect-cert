@@ -1,10 +1,10 @@
-const express   = require("express");
-const puppeteer = require("puppeteer");
-const app       = express();
+const express    = require("express");
+const puppeteer  = require("puppeteer-core");
+const chromium   = require("@sparticuz/chromium");
+const app        = express();
 
 app.use(express.json({ limit: "2mb" }));
 
-// CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Content-Type");
@@ -78,30 +78,12 @@ app.post("/generate-cert", async (req, res) => {
     through a Musharaka Partnership Agreement
   </div>
   <div class="details">
-    <div class="detail-row">
-      <span class="detail-label">Partner ID:</span>
-      <span class="detail-value">${partnerId}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Capital Invested:</span>
-      <span class="detail-value">₦${Number(capital).toLocaleString()}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Units Held:</span>
-      <span class="detail-value">${Number(units).toLocaleString()}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Ownership:</span>
-      <span class="detail-value">${pct}%</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Partner Tier:</span>
-      <span class="detail-value">${tier}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Date Issued:</span>
-      <span class="detail-value">${date}</span>
-    </div>
+    <div class="detail-row"><span class="detail-label">Partner ID:</span><span class="detail-value">${partnerId}</span></div>
+    <div class="detail-row"><span class="detail-label">Capital Invested:</span><span class="detail-value">₦${Number(capital).toLocaleString()}</span></div>
+    <div class="detail-row"><span class="detail-label">Units Held:</span><span class="detail-value">${Number(units).toLocaleString()}</span></div>
+    <div class="detail-row"><span class="detail-label">Ownership:</span><span class="detail-value">${pct}%</span></div>
+    <div class="detail-row"><span class="detail-label">Partner Tier:</span><span class="detail-value">${tier}</span></div>
+    <div class="detail-row"><span class="detail-label">Date Issued:</span><span class="detail-value">${date}</span></div>
   </div>
   <div class="seal">
     <p style="font-size:11px;color:#666;margin-bottom:10px">
@@ -119,18 +101,18 @@ app.post("/generate-cert", async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox",
-             "--disable-dev-shm-usage", "--disable-gpu"]
+      args:            chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath:  await chromium.executablePath(),
+      headless:        chromium.headless,
     });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
     const pdf = await page.pdf({
-      format: "A4", landscape: true,
-      printBackground: true
+      format: "A4", landscape: true, printBackground: true
     });
     await browser.close();
 
-    // Return as base64 so the portal can store it in Firestore
     const base64 = Buffer.from(pdf).toString("base64");
     res.json({ pdf: "data:application/pdf;base64," + base64 });
 
